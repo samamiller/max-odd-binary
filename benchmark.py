@@ -354,6 +354,12 @@ _d_bin_cache = {}
 def bench_d(name, func_body):
     compiler = find_cmd("ldc2")
     if not compiler:
+        ldc_home = Path.home() / "dlang"
+        if ldc_home.is_dir():
+            candidates = sorted(ldc_home.glob("ldc-*/bin/ldc2"), reverse=True)
+            if candidates and candidates[0].exists():
+                compiler = str(candidates[0])
+    if not compiler:
         return None
 
     if name not in _d_bin_cache:
@@ -363,18 +369,20 @@ def bench_d(name, func_body):
             "import std.algorithm;\n"
             "import std.datetime.stopwatch;\n"
             "import std.stdio;\n"
-            "import std.range;\n\n"
-            "auto maximumOddBinary(ubyte[] s){\n"
+            "import std.range;\n"
+            "import std.array;\n"
+            "import std.string : representation;\n\n"
+            "auto maximumOddBinary(char[] s){\n"
             f"  {func_body}\n"
             "  return s;\n"
             "}\n\n"
             "int main() {\n"
-            f"  ubyte[] input = iota({INPUT_LEN / 2}).map!(i => (i % 2 == 0) ? cast(ubyte)'0' : cast(ubyte)'1').array;\n"
+            f'  char[] input = cast(char[])"01".repeat({INPUT_LEN // 2}).join.array;\n'
             f"  enum n = {N_ITERS};\n"
-            "  ubyte[] result;\n"
+            "  char[] result;\n"
             "  auto sw = StopWatch(AutoStart.yes);\n"
             "  foreach(i; 0 .. n)\n"
-            "    result = maximumOddBinary(input);\n"
+            "    result = maximumOddBinary(input.dup);\n"
             "  sw.stop();\n"
             "  double dur = sw.peek.total!`nsecs`;\n"
             "  writeln(dur / (1e9 * n));\n"
@@ -879,7 +887,7 @@ def generate_html(all_results, output_path):
 
     HIGHLIGHT_LANGS = {
         "C++": "cpp", "Rust": "rust", "Nim": "nim",
-        "Python": "python", "Julia": "julia",
+        "D": "d", "Python": "python", "Julia": "julia",
     }
 
     sol_map = {}
@@ -1709,10 +1717,10 @@ SOLUTIONS = [
         bytes=None,
         color="#b63838",
         logo="dlang_logo",
-        source_code="auto f(ubyte[] s) {\n  s.sort!`a > b`;\n  bringToFrint(s[0..1], s[1..$]);\n  return s;\n}",
+        source_code='auto mob(char[] s) {\n  s.representation.sort!"a > b";\n  bringToFront(s[0..1], s[1..$]);\n  return s;\n}',
         bench=lambda: bench_d(
             "d_sort",
-            "s.sort!`a > b`;\n    bringToFront(s[0..1],s[1..$]);",
+            's.representation.sort!"a > b";\n    bringToFront(s[0..1],s[1..$]);',
         ),
         script=(
             "  auto start = StopWatch(AutoStart.yes);\n"
@@ -1726,11 +1734,11 @@ SOLUTIONS = [
         code="partition+rotate",
         bytes=None,
         color="#b63838",
-        logo="d_logo",
-        source_code="auto f(ubyte[] s) {\n  partition!(c => c == '1')(s);\n  bringToFront(s[0 .. 1], s[1 .. $]);\n  return s;\n}",
+        logo="dlang_logo",
+        source_code="auto mob(char[] s) {\n  s.representation.partition!(c => c == '1');\n  bringToFront(s[0 .. 1], s[1 .. $]);\n  return s;\n}",
         bench=lambda: bench_d(
             "d_partition",
-            "partition!(c => c == '1')(s);\n     bringToFront(s[0 .. 1], s[1 .. $]);",
+            "s.representation.partition!(c => c == '1');\n     bringToFront(s[0 .. 1], s[1 .. $]);",
         ),
         script=(
             "  foreach(i;0 .. N) {\n"
@@ -1743,8 +1751,8 @@ SOLUTIONS = [
         code="count+construct",
         bytes=None,
         color="#b63838",
-        logo="d_logo",
-        source_code="auto f(ubyte[] s) {\n  auto n = s.count('1') - 1;\n  s[0 .. n].fill('1');\n  s[n .. $ - 1].fill('0');\n  s[$ - 1] = '1';\n  return s\n}",
+        logo="dlang_logo",
+        source_code="auto mob(char[] s) {\n  auto n = s.count('1') - 1;\n  s[0 .. n].fill('1');\n  s[n .. $ - 1].fill('0');\n  s[$ - 1] = '1';\n  return s;\n}",
         bench=lambda: bench_d(
             "d_count",
             "    auto n = s.count('1') - 1;\n"
@@ -1760,12 +1768,6 @@ SOLUTIONS = [
         ),
     ),
     dict(
-        name="Julia",
-        code="sort+circshift",
-        bytes=None,
-        color="#9558b2",
-        logo="julia_logo_darkmode",
-        source_code="function f(s)\n  v = sort(s, rev=true)\n  circshift(v, -1)\nend",
         name="Julia", code="sort+circshift", bytes=None,
         color="#9558b2", logo="julia_logo_darkmode",
         source_code="function mob(s)\n  v = sort(s, rev=true)\n  circshift(v, -1)\nend",
