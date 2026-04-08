@@ -1386,21 +1386,39 @@ function onSizeChange() {{
 }}
 
 // ── Controls ──
+const enabledLangs = new Set();
 function buildControls() {{
   const el = document.getElementById('controls');
+  const langs = [];
+  const seen = new Set();
   SOLS.forEach((d, i) => {{
+    if (!seen.has(d.name)) {{
+      seen.add(d.name);
+      langs.push({{ name: d.name, color: d.color, logo: d.logo, indices: [] }});
+    }}
+    langs.find(l => l.name === d.name).indices.push(i);
+  }});
+  langs.forEach(lang => {{
+    enabledLangs.add(lang.name);
     const chip = document.createElement('button');
     chip.className = 'chip active';
-    chip.style.setProperty('--c', d.color);
-    const bytes = d.bytes ? ` (${{d.bytes}}B)` : '';
+    chip.style.setProperty('--c', lang.color);
     chip.innerHTML =
-      (d.logo ? `<img src="${{d.logo}}" alt="">` : '') +
+      (lang.logo ? `<img src="${{lang.logo}}" alt="">` : '') +
       `<span class="check">\\u2713</span>` +
-      `<span>${{d.name}} ${{d.code}}${{bytes}}</span>`;
+      `<span>${{lang.name}}</span>`;
     chip.onclick = () => {{
-      if (enabled.has(i)) {{ enabled.delete(i); chip.classList.remove('active'); }}
-      else {{ enabled.add(i); chip.classList.add('active'); }}
-      chip.querySelector('.check').textContent = enabled.has(i) ? '\\u2713' : '';
+      const on = enabledLangs.has(lang.name);
+      if (on) {{
+        enabledLangs.delete(lang.name);
+        lang.indices.forEach(i => enabled.delete(i));
+        chip.classList.remove('active');
+      }} else {{
+        enabledLangs.add(lang.name);
+        lang.indices.forEach(i => enabled.add(i));
+        chip.classList.add('active');
+      }}
+      chip.querySelector('.check').textContent = enabledLangs.has(lang.name) ? '\\u2713' : '';
       updateBarChart(); updateTable(); updateLineChart();
     }};
     el.appendChild(chip);
@@ -1899,7 +1917,7 @@ SOLUTIONS = [
         name="TinyAPL",
         code="1\u2218\u2296\u2218\u22b5",
         bytes=5,
-        color="#9b59b6",
+        color="#8cc63f",
         logo="tinyapl",
         source_code="1\u2218\u2296\u2218\u22b5",
         bench=lambda: bench_tinyapl("1\u2218\u2296\u2218\u22b5"),
@@ -1912,7 +1930,7 @@ SOLUTIONS = [
         name="TinyAPL",
         code="1\u00ab\u2296\u00bb\u22b5",
         bytes=5,
-        color="#9b59b6",
+        color="#8cc63f",
         logo="tinyapl",
         source_code="1\u00ab\u2296\u00bb\u22b5",
         bench=lambda: bench_tinyapl("1\u00ab\u2296\u00bb\u22b5"),
@@ -1922,7 +1940,7 @@ SOLUTIONS = [
         name="TinyAPL",
         code="\u29851\u2296\u22b5\u2986",
         bytes=5,
-        color="#9b59b6",
+        color="#8cc63f",
         logo="tinyapl",
         source_code="\u29851\u2296\u22b5\u2986",
         bench=lambda: bench_tinyapl("\u29851\u2296\u22b5\u2986"),
