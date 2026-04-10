@@ -1244,6 +1244,45 @@ def generate_html(all_results, output_path):
   }}
   .slide-code code {{ font-family: inherit; }}
 
+  /* Star Wars wipe transitions */
+  .slide.wipe-reveal {{ z-index: 10002; }}
+
+  .slide.wipe-down {{
+    -webkit-mask-image: linear-gradient(to bottom, #000 46%, transparent 54%);
+    mask-image: linear-gradient(to bottom, #000 46%, transparent 54%);
+    -webkit-mask-size: 100% 300vh; mask-size: 100% 300vh;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    animation: wipeDown 1800ms ease-in-out forwards;
+  }}
+  @keyframes wipeDown {{
+    from {{ -webkit-mask-position: 0 -200vh; mask-position: 0 -200vh; }}
+    to   {{ -webkit-mask-position: 0 0; mask-position: 0 0; }}
+  }}
+
+  .slide.wipe-up {{
+    -webkit-mask-image: linear-gradient(to bottom, transparent 46%, #000 54%);
+    mask-image: linear-gradient(to bottom, transparent 46%, #000 54%);
+    -webkit-mask-size: 100% 300vh; mask-size: 100% 300vh;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    animation: wipeUp 1800ms ease-in-out forwards;
+  }}
+  @keyframes wipeUp {{
+    from {{ -webkit-mask-position: 0 0; mask-position: 0 0; }}
+    to   {{ -webkit-mask-position: 0 -200vh; mask-position: 0 -200vh; }}
+  }}
+
+  .slide.wipe-rtl {{
+    -webkit-mask-image: linear-gradient(to right, transparent 46%, #000 54%);
+    mask-image: linear-gradient(to right, transparent 46%, #000 54%);
+    -webkit-mask-size: 300vw 100%; mask-size: 300vw 100%;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    animation: wipeRtl 1800ms ease-in-out forwards;
+  }}
+  @keyframes wipeRtl {{
+    from {{ -webkit-mask-position: 0 0; mask-position: 0 0; }}
+    to   {{ -webkit-mask-position: -200vw 0; mask-position: -200vw 0; }}
+  }}
+
   /* Magic Move token animation */
   #magic-move-overlay {{
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -1353,7 +1392,7 @@ def generate_html(all_results, output_path):
     <div class="bottom-logos" id="bottom-logos"></div>
   </div>
   <!-- 1: Section (Episode I style) -->
-  <div class="slide" data-slide="1">
+  <div class="slide" data-slide="1" data-wipe="clock">
     <div class="slide-section">
       <div class="sec-top">PERF WARS</div>
       <div class="sec-bar"></div>
@@ -1389,7 +1428,7 @@ def generate_html(all_results, output_path):
   <div class="slide slide-code" data-slide="11" id="slide-code-python-sort"></div>
   <div class="slide slide-code" data-slide="12" id="slide-code-d-sort"></div>
   <!-- Part II -->
-  <div class="slide" data-slide="13">
+  <div class="slide" data-slide="13" data-wipe="down">
     <div class="slide-section">
       <div class="sec-top">PERF WARS</div>
       <div class="sec-bar"></div>
@@ -1402,7 +1441,7 @@ def generate_html(all_results, output_path):
   <div class="slide slide-code" data-slide="15" id="slide-code-rust-part"></div>
   <div class="slide slide-code" data-slide="16" id="slide-code-d-part"></div>
   <!-- Part III -->
-  <div class="slide" data-slide="17">
+  <div class="slide" data-slide="17" data-wipe="up">
     <div class="slide-section">
       <div class="sec-top">PERF WARS</div>
       <div class="sec-bar"></div>
@@ -1418,7 +1457,7 @@ def generate_html(all_results, output_path):
   <div class="slide slide-code" data-slide="20" id="slide-code-rust-count"></div>
   <div class="slide slide-code" data-slide="21" id="slide-code-d-count"></div>
   <!-- Part IV -->
-  <div class="slide" data-slide="22">
+  <div class="slide" data-slide="22" data-wipe="rtl">
     <div class="slide-section">
       <div class="sec-top">PERF WARS</div>
       <div class="sec-bar"></div>
@@ -1896,15 +1935,63 @@ function magicMove(oldSlide, newSlide, duration) {{
 
 const MM_DURATION = 900;
 
+let wipeInProgress = false;
+const WIPE_DURATION = 1800;
+const WIPE_CLASSES = ['wipe-reveal', 'wipe-down', 'wipe-up', 'wipe-rtl'];
+
+function wipeEase(t) {{
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}}
+
+function animateClockWipe(slide, duration, onDone) {{
+  const start = performance.now();
+  function tick() {{
+    const t = Math.min((performance.now() - start) / duration, 1);
+    const angle = wipeEase(t) * 380;
+    const solid = Math.max(0, angle - 20);
+    const edge = Math.min(angle, 360);
+    const g = `conic-gradient(from -90deg, #000 ${{solid}}deg, transparent ${{edge}}deg, transparent)`;
+    slide.style.maskImage = g;
+    slide.style.webkitMaskImage = g;
+    if (t < 1) requestAnimationFrame(tick);
+    else {{ slide.style.maskImage = ''; slide.style.webkitMaskImage = ''; onDone(); }}
+  }}
+  requestAnimationFrame(tick);
+}}
+
 function showSlide(n) {{
+  if (wipeInProgress) return;
   const newIndex = Math.max(0, Math.min(n, totalSlides - 1));
   if (newIndex === slideIndex && slideEls[slideIndex].classList.contains('active')) return;
 
   const oldSlide = slideEls[slideIndex];
   const newSlide = slideEls[newIndex];
   const bothCode = oldSlide.classList.contains('slide-code') && newSlide.classList.contains('slide-code');
+  const wipeType = newSlide.dataset.wipe;
 
-  if (bothCode && slideshowActive) {{
+  if (wipeType && slideshowActive) {{
+    wipeInProgress = true;
+    if (wipeType === 'clock') {{
+      const g0 = 'conic-gradient(from -90deg, transparent, transparent)';
+      newSlide.style.maskImage = g0;
+      newSlide.style.webkitMaskImage = g0;
+      newSlide.classList.add('active', 'wipe-reveal');
+      animateClockWipe(newSlide, WIPE_DURATION, () => {{
+        oldSlide.classList.remove('active');
+        newSlide.classList.remove('wipe-reveal');
+        wipeInProgress = false;
+      }});
+    }} else {{
+      WIPE_CLASSES.forEach(c => newSlide.classList.remove(c));
+      void newSlide.offsetWidth;
+      newSlide.classList.add('active', 'wipe-reveal', 'wipe-' + wipeType);
+      setTimeout(() => {{
+        oldSlide.classList.remove('active');
+        WIPE_CLASSES.forEach(c => newSlide.classList.remove(c));
+        wipeInProgress = false;
+      }}, WIPE_DURATION + 50);
+    }}
+  }} else if (bothCode && slideshowActive) {{
     magicMove(oldSlide, newSlide, MM_DURATION);
   }} else {{
     slideEls.forEach((el, i) => el.classList.toggle('active', i === newIndex));
