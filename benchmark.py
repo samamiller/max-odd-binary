@@ -108,7 +108,7 @@ def bench_bqn_sort_alt():
     interp = find_cmd("cbqn", "bqn")
     if not interp:
         return None
-    fn = '"01"\u228f\u02dc1\u233d\u00b7\u2228\'1\'\u22b8='
+    fn = "\"01\"\u228f\u02dc1\u233d\u00b7\u2228'1'\u22b8="
     script = f'\u2022Out \u2022Fmt {N_ITERS}({fn})\u2022_timed {INPUT_LEN}\u294a"01"'
     out, _, rc = run_cmd([interp, "-e", script])
     return parse_number(out) if rc == 0 else None
@@ -385,17 +385,17 @@ def bench_d(name, func_body):
             "import std.range;\n"
             "import std.array;\n"
             "import std.string : representation;\n\n"
-            "auto maximumOddBinary(char[] s){\n"
+            "auto maximumOddBinary(dchar[] s){\n"
             f"  {func_body}\n"
             "  return s;\n"
             "}\n\n"
             "int main() {\n"
-            f'  char[] input = cast(char[])"01".repeat({INPUT_LEN // 2}).join.array;\n'
+            f'  dchar[] input = cast(dchar[])"01".repeat({INPUT_LEN // 2}).join.array;\n'
             f"  enum n = {N_ITERS};\n"
-            "  char[] result;\n"
+            "  dchar[] result;\n"
             "  auto sw = StopWatch(AutoStart.yes);\n"
             "  foreach(i; 0 .. n)\n"
-            "    result = maximumOddBinary(input.dup);\n"
+            "    result = maximumOddBinary(input);\n"
             "  sw.stop();\n"
             "  double dur = sw.peek.total!`nsecs`;\n"
             "  writeln(dur / (1e9 * n));\n"
@@ -409,7 +409,8 @@ def bench_d(name, func_body):
         _, cerr, crc = run_cmd(
             [
                 compiler,
-                "-O3",
+                "-O5",
+                "-release",
                 f"-of={str(bin_path)}",
                 str(src_path),
             ]
@@ -919,8 +920,8 @@ def _shiki_highlight(snippets):
 
     try:
         from pygments import highlight as pyg_highlight
-        from pygments.lexers import get_lexer_by_name
         from pygments.formatters import HtmlFormatter
+        from pygments.lexers import get_lexer_by_name
 
         fmt = HtmlFormatter(style="dracula", noclasses=True, nowrap=False)
         results = []
@@ -2206,11 +2207,11 @@ SOLUTIONS = [
         bytes=None,
         color="#2b7067",
         logo="bqn",
-        source_code='"01"\u228f\u02dc1\u233d\u00b7\u2228\'1\'\u22b8=',
+        source_code="\"01\"\u228f\u02dc1\u233d\u00b7\u2228'1'\u22b8=",
         bench=bench_bqn_sort_alt,
         script=(
             '  \u2022Out \u2022Fmt N("01"\u228f\u02dc1\u233d\u00b7\u2228\'1\'\u22b8=)\u2022_timed L\u294a"01"\n'
-            "  sort+rotate on boolean mask, then index back into \"01\""
+            '  sort+rotate on boolean mask, then index back into "01"'
         ),
     ),
     dict(
@@ -2592,10 +2593,10 @@ SOLUTIONS = [
         bytes=None,
         color="#b63838",
         logo="dlang_logo",
-        source_code='auto mob(char[] s) {\n  s.representation.sort!"a > b";\n  bringToFront(s[0..1], s[1..$]);\n  return s;\n}',
+        source_code='auto mob(dchar[] s) {\n  s.sort!"a > b";\n  bringToFront(s[0..1], s[1..$]);\n  return s;\n}',
         bench=lambda: bench_d(
             "d_sort",
-            's.representation.sort!"a > b";\n    bringToFront(s[0..1],s[1..$]);',
+            's.sort!"a > b";\n    bringToFront(s[0..1],s[1..$]);',
         ),
         script=(
             "  auto start = StopWatch(AutoStart.yes);\n"
@@ -2610,10 +2611,10 @@ SOLUTIONS = [
         bytes=None,
         color="#b63838",
         logo="dlang_logo",
-        source_code="auto mob(char[] s) {\n  s.representation.partition!(c => c == '1');\n  bringToFront(s[0 .. 1], s[1 .. $]);\n  return s;\n}",
+        source_code="auto mob(dchar[] s) {\n  s.partition!(c => c == '1');\n  bringToFront(s[0 .. 1], s[1 .. $]);\n  return s;\n}",
         bench=lambda: bench_d(
             "d_partition",
-            "s.representation.partition!(c => c == '1');\n     bringToFront(s[0 .. 1], s[1 .. $]);",
+            "s.partition!(c => c == '1');\n     bringToFront(s[0 .. 1], s[1 .. $]);",
         ),
         script=(
             "  foreach(i;0 .. N) {\n"
@@ -2627,7 +2628,7 @@ SOLUTIONS = [
         bytes=None,
         color="#b63838",
         logo="dlang_logo",
-        source_code="auto mob(char[] s) {\n  auto n = s.count('1') - 1;\n  s[0 .. n].fill('1');\n  s[n .. $ - 1].fill('0');\n  s[$ - 1] = '1';\n  return s;\n}",
+        source_code="auto mob(dchar[] s) {\n  auto n = s.count('1') - 1;\n  s[0 .. n].fill('1');\n  s[n .. $ - 1].fill('0');\n  s[$ - 1] = '1';\n  return s;\n}",
         bench=lambda: bench_d(
             "d_count",
             "    auto n = s.count('1') - 1;\n"
@@ -2916,9 +2917,7 @@ def main():
     print(f"  Results for {default_size:,}-char input (fastest \u2192 slowest)")
     print("=" * 60)
     for i, r in enumerate(results, 1):
-        print(
-            f"  {i:>2}. {r['name']:>10}  {r['code']:<24} {_fmt_time(r['time']):>10}"
-        )
+        print(f"  {i:>2}. {r['name']:>10}  {r['code']:<24} {_fmt_time(r['time']):>10}")
 
     print("\nGenerating outputs...")
     generate_chart(results, ROOT / "img" / "benchmark_all.png")
