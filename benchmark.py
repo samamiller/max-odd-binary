@@ -782,6 +782,38 @@ def bench_python_sort():
         os.unlink(path)
 
 
+# ─────────────────────────── Benchmark: JavaScript (Node) ────────
+
+
+def bench_js():
+    node = find_cmd("node")
+    if not node:
+        return None
+    code = (
+        f'const input = "01".repeat({INPUT_LEN // 2});\n'
+        "function maxOddBinary(s) {\n"
+        "  let ones = -1;\n"
+        "  for (let i = 0; i < s.length; i++) {\n"
+        '    if (s[i] === "1") ones++;\n'
+        "  }\n"
+        "  const zeros = s.length - ones - 1;\n"
+        '  return "1".repeat(ones) + "0".repeat(zeros) + "1";\n'
+        "}\n"
+        "maxOddBinary(input);\n"
+        f"const n = {N_ITERS};\n"
+        "const start = process.hrtime.bigint();\n"
+        "for (let i = 0; i < n; i++) maxOddBinary(input);\n"
+        "const elapsed = Number(process.hrtime.bigint() - start) / 1e9;\n"
+        "console.log(elapsed / n);\n"
+    )
+    path = write_temp(".js", code)
+    try:
+        out, _, rc = run_cmd([node, path], timeout=60)
+        return parse_number(out) if rc == 0 else None
+    finally:
+        os.unlink(path)
+
+
 # ─────────────────────────── Benchmark: Smalltalk (Squeak) ──────
 
 
@@ -1781,7 +1813,7 @@ const SIZES = BENCH.sizes;
 const SOLS  = BENCH.solutions;
 const HIDDEN_BY_DEFAULT = new Set(['TinyAPL', 'Kap', 'Smalltalk']);
 const enabled = new Set(SOLS.map((_, i) => i).filter(i => !HIDDEN_BY_DEFAULT.has(SOLS[i].name)));
-const enabledApproaches = new Set(['sort', 'partition', 'count']);
+const enabledApproaches = new Set(['sort', 'partition', 'count', 'loop']);
 let currentSize = SIZES.includes(1000) ? '1000' : String(SIZES[0]);
 let barChart, lineChart;
 
@@ -2038,16 +2070,19 @@ const APPROACH_COLORS = {{
   sort:      '#58a6ff',
   partition: '#3fb950',
   count:     '#f85149',
+  loop:      '#d2a8ff',
 }};
 
 const APPROACH_LABELS = [
   {{ key: 'sort',      label: 'Sort',      bg: '#58a6ff' }},
   {{ key: 'partition',  label: 'Partition',  bg: '#3fb950' }},
   {{ key: 'count',     label: 'Count',     bg: '#f85149' }},
+  {{ key: 'loop',      label: 'Loop',      bg: '#d2a8ff' }},
 ];
 
 function getApproach(d) {{
   const c = d.code.toLowerCase();
+  if (c.includes('loop')) return 'loop';
   if (c.includes('count') || c.includes('tacit count') || c.includes('construct')) return 'count';
   if (c.includes('partition')) return 'partition';
   if (c.includes('sort') || c.includes('circshift') || c.includes('rotate')
@@ -3019,6 +3054,21 @@ SOLUTIONS = [
             "      ... build string from counts\n"
             "  ].\n"
             "  t1 := ... O(n) counting, µs-precision timer"
+        ),
+    ),
+    dict(
+        name="JavaScript",
+        code="loop",
+        bytes=None,
+        color="#f7df1e",
+        logo="javascript",
+        source_code="const maxOddBinary = (s) => {\n  let ones = -1;\n  for (let i = 0; i < s.length; i++) {\n    if (s[i] === \"1\") ones++;\n  }\n  const zeros = s.length - ones - 1;\n  return \"1\".repeat(ones) + \"0\".repeat(zeros) + \"1\";\n};",
+        bench=bench_js,
+        script=(
+            "  const start = process.hrtime.bigint();\n"
+            "  for (let i = 0; i < N; i++) maxOddBinary(input);\n"
+            "  const elapsed = Number(process.hrtime.bigint() - start) / 1e9;\n"
+            "  Node.js — hrtime.bigint() ns-precision timer"
         ),
     ),
     dict(
