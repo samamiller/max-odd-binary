@@ -617,7 +617,7 @@ function buildBarChart() {
               const d = barChart._visibleData[ctx[0].dataIndex];
               return d && d.source_code ? '\n' + d.source_code : '';
             },
-            label: ctx => '\n' + fmtTime(ctx.raw),
+            label: ctx => '\n' + fmtTime(ctx.raw / 1e6),
           }
         },
         zoom: {
