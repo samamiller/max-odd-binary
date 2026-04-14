@@ -281,14 +281,16 @@ def bench_tinyapl(solution_code):
 # ─────────────────────────── Benchmark: Kap ─────────────────────
 
 
-def bench_kap():
+def bench_kap(fn_expr="1\u233d\u2228", setup=""):
     """Kap: uses time:measureTime for native timing."""
     kap_path = Path.home() / "Downloads/kap/gui2/bin/kap-jvm"
     if not kap_path.exists():
         return None
+    setup_part = f"{setup} \u25ca " if setup else ""
     expr = (
         f'input \u2190 {INPUT_LEN}\u2374"01" \u25ca '
-        f"time:measureTime {{ {{ 1\u233d\u2228 input }} \u00a8 \u2373{N_ITERS} }}"
+        f"{setup_part}"
+        f"time:measureTime {{ {{ {fn_expr} input }} \u00a8 \u2373{N_ITERS} }}"
     )
     out, err, rc = run_cmd([str(kap_path), "-n", "-E", expr], timeout=30)
     if rc != 0:
@@ -2560,6 +2562,34 @@ SOLUTIONS = [
         script=(
             '  input \u2190 L\u2374"01"                          \u2190 not timed\n'
             "  time:measureTime { { 1\u233d\u2228 input } \u00a8 \u2373N }  \u2190 timed: apply fn N times"
+        ),
+    ),
+    dict(
+        name="Kap",
+        code="count+construct",
+        bytes=None,
+        color="#ffffff",
+        logo="kap",
+        source_code="Mob \u21d0 {\n  n \u2190 +/@1=\u2375\n  a \u2190 n-1\n  b \u2190 n-\u2368\u2262\u2375\n  (a\u2374@1),(b\u2374@0),@1\n}",
+        bench=lambda: bench_kap(fn_expr="Mob", setup="Mob \u21d0 { n \u2190 +/@1=\u2375 \u25ca a \u2190 n-1 \u25ca b \u2190 n-\u2368\u2262\u2375 \u25ca (a\u2374@1),(b\u2374@0),@1 }"),
+        script=(
+            '  input \u2190 L\u2374"01"                          \u2190 not timed\n'
+            "  Mob \u21d0 { n\u2190+/@1=\u2375 \u25ca a\u2190n-1 \u25ca b\u2190n-\u2368\u2262\u2375 \u25ca (a\u2374@1),(b\u2374@0),@1 }\n"
+            "  time:measureTime { { Mob input } \u00a8 \u2373N }  \u2190 O(n) count+construct"
+        ),
+    ),
+    dict(
+        name="Kap",
+        code="count+construct tacit",
+        bytes=None,
+        color="#ffffff",
+        logo="kap",
+        source_code="Mob \u21d0 \"101\"\u233f\u23681,\u2368\u2262\u00ab(1-\u2368\u22a2)\u00ab,\u00bb-\u00bb(+/@1=)",
+        bench=lambda: bench_kap(fn_expr="Mob", setup="Mob \u21d0 \"101\"\u233f\u23681,\u2368\u2262\u00ab(1-\u2368\u22a2)\u00ab,\u00bb-\u00bb(+/@1=)"),
+        script=(
+            '  input \u2190 L\u2374"01"                          \u2190 not timed\n'
+            '  Mob \u21d0 "101"\u233f\u23681,\u2368\u2262\u00ab(1-\u2368\u22a2)\u00ab,\u00bb-\u00bb(+/@1=)\n'
+            "  time:measureTime { { Mob input } \u00a8 \u2373N }  \u2190 O(n) tacit count+construct"
         ),
     ),
     dict(
